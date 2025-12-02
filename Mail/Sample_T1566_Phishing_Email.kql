@@ -3,7 +3,7 @@
 //==============================================================================
 // Rule: Phishing Email with Suspicious Attachment
 // ID: KQL-MAIL-001
-// Author: PrototypePrime
+// Author: Mathan
 // Date: 2025-12-02
 // MITRE: T1566 (Phishing)
 // Severity: HIGH

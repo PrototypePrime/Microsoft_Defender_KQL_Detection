@@ -3,7 +3,7 @@
 //==============================================================================
 // Rule: User Added to Global Admins
 // ID: KQL-ID-001
-// Author: PrototypePrime
+// Author: Mathan
 // Date: 2025-12-02
 // MITRE: T1098 (Account Manipulation)
 // Severity: CRITICAL

@@ -8,7 +8,7 @@
 
 **Enterprise KQL Detection Rules for Microsoft Security Stack**
 
-*Curated by PrototypePrime | Senior Security Engineer*
+*Curated by Mathan | Senior Security Engineer*
 
 [🚀 Quick Start](#-quick-start) • [📁 Categories](#-detection-categories) • [📖 Documentation](#-detection-engineering-workflow) • [🤝 Contributing](#-contributing)
 
