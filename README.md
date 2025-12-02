@@ -721,7 +721,7 @@ SecurityIncident
 - [MustLearnKQL](https://aka.ms/MustLearnKQL)
 
 ### Learning Resources
-- [KQL Cafe](https://aka.ms/KQLCafe)
+- [KQL Cafe](https://kqlcafe.com)
 - [SC-200 Certification Path](https://docs.microsoft.com/learn/certifications/security-operations-analyst/)
 - [Microsoft Security Blog](https://www.microsoft.com/security/blog/)
 

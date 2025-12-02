@@ -1,0 +1,17 @@
+//==============================================================================
+// MICROSOFT DEFENDER KQL DETECTION - AZURE PORTAL LOGIN
+//==============================================================================
+// Rule: Login to Azure Portal from Non-Corporate IP
+// ID: KQL-CLOUD-001
+// Author: PrototypePrime
+// Date: 2025-12-02
+// MITRE: T1078 (Valid Accounts)
+// Severity: MEDIUM
+//==============================================================================
+
+SigninLogs
+| where AppDisplayName == "Azure Portal"
+| where ResultType == 0
+| where IPAddress !startswith "10." // Exclude internal
+| project TimeGenerated, UserPrincipalName, IPAddress, Location
+| extend Severity = "MEDIUM"

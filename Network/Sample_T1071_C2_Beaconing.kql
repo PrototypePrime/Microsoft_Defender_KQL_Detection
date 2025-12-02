@@ -1,0 +1,18 @@
+//==============================================================================
+// MICROSOFT DEFENDER KQL DETECTION - C2 BEACONING
+//==============================================================================
+// Rule: Frequent Connections to Rare IP
+// ID: KQL-NET-001
+// Author: PrototypePrime
+// Date: 2025-12-02
+// MITRE: T1071 (C2)
+// Severity: HIGH
+//==============================================================================
+
+DeviceNetworkEvents
+| where ActionType == "ConnectionSuccess"
+| where RemoteIPType == "Public"
+| summarize ConnCount=count() by RemoteIP, DeviceName, bin(TimeGenerated, 1h)
+| where ConnCount > 50
+| project TimeGenerated, DeviceName, RemoteIP, ConnCount
+| extend Severity = "HIGH"

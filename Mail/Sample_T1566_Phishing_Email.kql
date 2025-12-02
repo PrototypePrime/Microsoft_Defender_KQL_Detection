@@ -1,0 +1,19 @@
+//==============================================================================
+// MICROSOFT DEFENDER KQL DETECTION - PHISHING EMAIL
+//==============================================================================
+// Rule: Phishing Email with Suspicious Attachment
+// ID: KQL-MAIL-001
+// Author: PrototypePrime
+// Date: 2025-12-02
+// MITRE: T1566 (Phishing)
+// Severity: HIGH
+//==============================================================================
+
+EmailAttachmentInfo
+| where FileType in ("exe", "vbs", "js", "scr")
+| join kind=inner (
+    EmailEvents
+    | where DeliveryAction == "Delivered"
+) on NetworkMessageId
+| project TimeGenerated, SenderFromAddress, RecipientEmailAddress, FileName, FileType
+| extend Severity = "HIGH"

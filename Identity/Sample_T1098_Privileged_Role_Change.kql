@@ -1,0 +1,18 @@
+//==============================================================================
+// MICROSOFT DEFENDER KQL DETECTION - PRIVILEGED ROLE CHANGE
+//==============================================================================
+// Rule: User Added to Global Admins
+// ID: KQL-ID-001
+// Author: PrototypePrime
+// Date: 2025-12-02
+// MITRE: T1098 (Account Manipulation)
+// Severity: CRITICAL
+//==============================================================================
+
+AuditLogs
+| where OperationName == "Add member to role"
+| where Result == "success"
+| extend RoleName = tostring(TargetResources[0].modifiedProperties[1].newValue)
+| where RoleName contains "Global Administrator"
+| project TimeGenerated, InitiatedBy, RoleName, TargetResources
+| extend Severity = "CRITICAL"

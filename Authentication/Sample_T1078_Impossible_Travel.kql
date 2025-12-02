@@ -1,0 +1,300 @@
+//==============================================================================
+// MICROSOFT DEFENDER KQL DETECTION - IMPOSSIBLE TRAVEL
+//==============================================================================
+// Rule: Impossible Travel - Suspicious Sign-In Locations
+// ID: KQL-AUTH-001
+// Author: PrototypePrime
+// Date: 2025-12-02
+// MITRE: T1078 (Valid Accounts)
+// Severity: HIGH
+//
+// MITRE Tactic: Initial Access, Credential Access
+// Data Source: Azure AD Sign-in Logs
+// Platform: Microsoft Defender XDR, Azure Sentinel
+//==============================================================================
+// WHAT IT DETECTS:
+// Detects impossible travel scenarios where a user successfully signs in from
+// two different geographic locations in a timeframe that would be impossible
+// via conventional travel (faster than commercial flight speed).
+//
+// ATTACK SCENARIO:
+// 1. Attacker compromises user credentials (phishing, breach, etc.)
+// 2. Attacker signs in from different geolocation
+// 3. Legitimate user also signs in from their normal location
+// 4. Time/distance between sign-ins indicates credential theft
+//==============================================================================
+
+let timeframe = 24h;
+let distance_threshold = 500; // kilometers
+let speed_threshold = 800; // km/h (faster than commercial flight)
+SigninLogs
+| where TimeGenerated >= ago(timeframe)
+| where ResultType == "0"  // Successful sign-ins only
+| where isnotempty(LocationDetails.city)
+| project 
+    TimeGenerated,
+    UserPrincipalName,
+    IPAddress,
+    LocationDetails,
+    DeviceDetail,
+    AppDisplayName,
+    AuthenticationRequirement
+| extend 
+    Country = tostring(LocationDetails.countryOrRegion),
+    City = tostring(LocationDetails.city),
+   State = tostring(LocationDetails.state),
+    Latitude = todouble(LocationDetails.geoCoordinates.latitude),
+    Longitude = todouble(LocationDetails.geoCoordinates.longitude)
+| where isnotempty(Latitude) and isnotempty(Longitude)
+| order by UserPrincipalName, TimeGenerated asc
+| serialize
+| extend 
+    prev_time = prev(TimeGenerated),
+    prev_city = prev(City),
+    prev_country = prev(Country),
+    prev_lat = prev(Latitude),
+    prev_lon = prev(Longitude)
+| where UserPrincipalName == prev(UserPrincipalName)
+| extend 
+    time_diff_minutes = datetime_diff('minute', TimeGenerated, prev_time),
+    time_diff_hours = datetime_diff('hour', TimeGenerated, prev_time),
+    // Haversine formula for distance calculation
+    lat_diff = radians(Latitude - prev_lat),
+    lon_diff = radians(Longitude - prev_lon),
+    a = pow(sin(lat_diff / 2), 2) +
+        cos(radians(prev_lat)) * cos(radians(Latitude)) *
+        pow(sin(lon_diff / 2), 2),
+    c = 2 * asin(sqrt(a)),
+    distance_km = 6371 * c  // Earth radius in km
+| where time_diff_hours > 0 
+    and distance_km > distance_threshold
+    and City != prev_city
+| extend speed_kmh = distance_km / time_diff_hours
+| where speed_kmh > speed_threshold
+| extend
+    RiskLevel = case(
+        speed_kmh > 2000, "CRITICAL",
+        speed_kmh > 1500, "HIGH",
+        speed_kmh > 1000, "MEDIUM",
+        "LOW"
+    ),
+    IncidentTitle = strcat("Impossible Travel: ", UserPrincipalName),
+    MITRE_Technique = "T1078"
+| project 
+    TimeGenerated,
+    UserPrincipalName,
+    CurrentLocation = strcat(City, ", ", Country),
+    PreviousLocation = strcat(prev_city, ", ", prev_country),
+    CurrentIP = IPAddress,
+    TimeDiff_Hours = round(time_diff_hours, 2),
+    Distance_KM = round(distance_km, 2),
+    Speed_KMH = round(speed_kmh, 2),
+    RiskLevel,
+    AppDisplayName,
+    MFA_Used = AuthenticationRequirement,
+    DeviceOS = tostring(DeviceDetail.operatingSystem)
+| order by Speed_KMH desc
+
+//==============================================================================
+// QUERY EXPLANATION
+//==============================================================================
+// 1. Filter successful sign-ins in last 24 hours
+// 2. Extract geolocation data (latitude/longitude)
+// 3. Order by user and time to compare sequential sign-ins
+// 4. Calculate distance between consecutive locations (Haversine formula)
+// 5. Calculate speed of travel (distance/time)
+// 6. Flag as impossible travel if speed > 800 km/h (commercial flight)
+// 7. Assign risk level based on speed (higher = more suspicious)
+//
+// Key Tables:
+// - SigninLogs: Azure AD authentication events
+//
+// Key Fields:
+// - UserPrincipalName: User account
+// - LocationDetails: Geolocation data
+// - ResultType: 0 = success, 50126 = wrong password, etc.
+//==============================================================================
+
+//==============================================================================
+// TUNING & OPTIMIZATION
+//==============================================================================
+// Known False Positives:
+// - VPN users (appears as different geographic location)
+// - Users traveling by commercial flight
+// - Incorrect geolocation data for IP addresses
+// - Cloud service authentications (can appear from various locations)
+//
+// Exclusions (add to query):
+/*
+| where UserPrincipalName !endswith "@service.contoso.com"  // Service accounts
+| where UserPrincipalName !startswith "svc_"
+| where AppDisplayName !in ("Azure Portal", "Microsoft Teams")  // Known safe apps
+| where not(Country in~ ("US", "GB") and prev_country in~ ("US", "GB"))  // Same country exceptions
+*/
+//
+// Threshold Adjustments:
+// - Small organization: Keep at 800 km/h
+// - Large global org: Increase to 1000 km/h to reduce VPN noise
+//
+// Performance Optimization:
+// - Limit timeframe to 24h (avoid processing large datasets)
+// - Use materialize() for frequently queried data
+// - Consider creating scheduled alert instead of continuous hunting
+//
+//==============================================================================
+// ADVANCED CORRELATION
+//==============================================================================
+// Enrich with additional context:
+/*
+| join kind=leftouter (
+    IdentityInfo
+    | project AccountUPN, Department, Manager, OfficeLocation
+) on $left.UserPrincipalName == $right.AccountUPN
+| extend ExpectedLocation = OfficeLocation
+| extend LocationMismatch = iff(CurrentLocation != ExpectedLocation, "Yes", "No")
+*/
+
+// Check for subsequent risky activities:
+/*
+| join kind=inner (
+    CloudAppEvents
+    | where TimeGenerated >= ago(24h)
+    | where ActionType in ("FileDownloaded", "FileUploaded", "MailItemsAccessed")
+    | summarize RiskyActions=count() by AccountObjectId
+    | where RiskyActions > 100
+) on $left.UserPrincipalName == $right.AccountObjectId
+*/
+
+//==============================================================================
+// TESTING & VALIDATION
+//==============================================================================
+// Test Scenario:
+// 1. Use VPN to sign in from foreign country (or simulate with test account)
+// 2. Sign in from normal location shortly after
+// 3. Verify alert triggers with distance/speed calculation
+//
+// Expected Result:
+// - Alert showing both locations
+// - Speed calculation > 800 km/h
+// - Risk level assigned based on speed
+//
+// Validation Checklist:
+// ☐ Query completes in < 60 seconds
+// ☐ Distance calculation is accurate (verify with Google Maps)
+// ☐ Speed threshold correctly filters results
+// ☐ False positives documented and excluded
+// ☐ Alert creates incident with all required fields
+//
+//==============================================================================
+// RESPONSE & INVESTIGATION
+//==============================================================================
+// Severity: HIGH
+//
+// Triage Steps:
+// 1. Contact user immediately - verify both sign-in locations
+// 2. Check if user uses VPN (common FP source)
+// 3. Review MFA status - was MFA satisfied for suspicious location?
+// 4. Check device compliance and trust status
+// 5. Review subsequent activities from suspicious location
+//
+// Investigation Questions:
+// - Does user recognize BOTH locations?
+// - Was user traveling (airport Wi-Fi can cause this)?
+// - Is VPN in use?
+// - Was MFA challenged and satisfied?
+// - Are there other suspicious activities (file downloads, email access)?
+//
+// Deep Dive Queries:
+/*
+// All recent sign-ins for user
+SigninLogs
+| where TimeGenerated >= ago(7d)
+| where UserPrincipalName == "<affected_user>"
+| project TimeGenerated, IPAddress, Location, ResultType, AppDisplayName
+| order by TimeGenerated desc
+
+// Recent risky detections
+AADUserRiskEvents
+| where TimeGenerated >= ago(7d)
+| where UserPrincipalName == "<affected_user>"
+| project TimeGenerated, RiskDetail, RiskEventType, RiskLevel
+```
+
+// File/email access from suspicious IP
+CloudAppEvents
+| where TimeGenerated >= ago(24h)
+| where AccountObjectId == "<user_id>"
+| summarize count() by ActionType, IPAddress
+```
+*/
+//
+// Immediate Actions:
+// - Revoke all active sessions for user
+// - Force password reset
+// - Enable Conditional Access policy (block from suspicious location)
+// - Notify user and manager
+// - Create incident ticket
+//
+// Escalation Criteria:
+// - User does NOT recognize the activity
+// - No MFA was used
+// - Suspicious location is high-risk country
+// - Followed by data exfiltration or privilege escalation
+// - Multiple users affected (credential stuffing campaign)
+//
+//==============================================================================
+// AUTOMATION & SOAR INTEGRATION
+//==============================================================================
+// Logic App / Power Automate Actions:
+// 1. Send Teams message to user with sign-in details
+// 2. Send email to user's manager for awareness
+// 3. Create ServiceNow incident (Priority: High)
+// 4. Query threat intelligence for source IP reputation
+// 5. If risk = CRITICAL: Revoke sessions automatically
+// 6. If risk = HIGH: Require MFA re-authentication
+//
+// Conditional Access Policy Trigger:
+// - Block sign-ins from flagged IP for 24 hours
+// - Require compliant device
+// - Require MFA for all access
+//
+//==============================================================================
+// REFERENCES & DOCUMENTATION
+//==============================================================================
+// MITRE ATT&CK:
+// - https://attack.mitre.org/techniques/T1078/
+//
+// Microsoft Documentation:
+// - https://docs.microsoft.com/azure/active-directory/identity-protection/concept-identity-protection-risks
+// - https://docs.microsoft.com/azure/sentinel/fusion
+//
+// Geographic Distance Calculation:
+// - Haversine formula: https://en.wikipedia.org/wiki/Haversine_formula
+//
+// Related Detections:
+// - KQL-AUTH-002: Password Spray Attack
+// - KQL-AUTH-003: MFA Fatigue Attack
+// - KQL-CLOUD-001: Suspicious Azure AD Changes
+//
+//==============================================================================
+// CHANGE LOG
+//==============================================================================
+// Version 1.0 - 2025-12-02 - PrototypePrime
+// - Initial rule creation
+// - Haversine distance calculation implemented
+// - Risk scoring based on travel speed
+//
+//==============================================================================
+// METADATA TAGS
+//==============================================================================
+// Platform: Microsoft Defender XDR / Azure Sentinel
+// Data Source: Azure AD Sign-in Logs
+// Detection Type: Anomaly Detection
+// Confidence: High
+// MITRE Tactic: Initial Access, Credential Access
+// Environment: Production
+// Status: Active
+// Alert Frequency: Every 5 minutes
+// Data Retention: 90 days
+//
+//==============================================================================

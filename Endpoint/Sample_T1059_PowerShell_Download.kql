@@ -1,0 +1,22 @@
+//==============================================================================
+// MICROSOFT DEFENDER KQL DETECTION - POWERSHELL DOWNLOAD
+//==============================================================================
+// Rule: PowerShell Download Pattern
+// ID: KQL-END-001
+// Author: PrototypePrime
+// Date: 2025-12-02
+// MITRE: T1059.001 (PowerShell)
+// Severity: HIGH
+//==============================================================================
+
+DeviceProcessEvents
+| where FileName =~ "powershell.exe"
+| where ProcessCommandLine has_any ("DownloadString", "DownloadFile", "Invoke-WebRequest", "iwr", "wget")
+| project TimeGenerated, DeviceName, AccountName, ProcessCommandLine, InitiatingProcessFileName
+| extend Severity = "HIGH"
+
+//==============================================================================
+// TUNING
+//==============================================================================
+// Exclude legitimate admin scripts:
+// | where ProcessCommandLine !has "install-agent.ps1"
