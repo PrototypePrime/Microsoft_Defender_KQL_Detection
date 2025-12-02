@@ -119,17 +119,7 @@ Production-tested **KQL (Kusto Query Language)** detection rules for Microsoft's
 - DeviceEvents: 30 days
 - EmailEvents: 90 days
 
-### Installation
 
-```bash
-# Clone repository
-git clone https://github.com/PrototypePrime/Microsoft_Defender_KQL_Detection.git
-cd Microsoft_Defender_KQL_Detection
-
-# Browse detections
-ls -la Authentication/
-ls -la Cloud/
-```
 
 ### Test a Detection
 
@@ -190,10 +180,10 @@ graph TD
     L --> H
     K -->|Good| M[Deploy to Prod]
     
-    style A fill:#e3f2fd
-    style M fill:#c8e6c9
-    style E fill:#fff9c4
-    style K fill:#fff9c4
+    style A fill:#d1e8ff,stroke:#0d6efd,stroke-width:2px
+    style M fill:#d1e7dd,stroke:#0f5132,stroke-width:2px
+    style E fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    style K fill:#fff3cd,stroke:#ffc107,stroke-width:2px
 ```
 
 ### 1. Identify the Threat
@@ -510,79 +500,6 @@ AuditLogs
 ```
 
 </details>
-
----
-
-## 🔧 Detection Template Structure
-
-```kql
-//==============================================================================
-// MICROSOFT DEFENDER / SENTINEL DETECTION
-//==============================================================================
-// Rule: [Descriptive Name]
-// ID: KQL-[###]
-// Author: PrototypePrime
-// Date: [YYYY-MM-DD]
-// MITRE: [T####] [Technique Name]
-// Severity: [CRITICAL | HIGH | MEDIUM | LOW]
-//==============================================================================
-// WHAT IT DETECTS:
-// [One-line description of the threat]
-//
-// ATTACK SCENARIO:
-// [How attackers use this technique]
-//
-// TABLES USED:
-// - [TableName1] - [Purpose]
-//==============================================================================
-
-let timeframe = 24h;
-[TableName]
-| where TimeGenerated >= ago(timeframe)
-| where [detection logic]
-| project [relevant fields]
-
-//==============================================================================
-// TUNING
-//==============================================================================
-// Known False Positives:
-// - [List expected FPs]
-//
-// Exclusions:
-// | where UserPrincipalName !in~ ("service@contoso.com")
-//
-// Threshold Recommendations:
-// - Small tenant (< 1000 users): [value]
-// - Large tenant (> 10000 users): [value]
-//
-//==============================================================================
-// TESTING
-//==============================================================================
-// Test Scenario: [How to generate test event]
-// Expected Result: [What alert should show]
-//
-//==============================================================================
-// RESPONSE
-//==============================================================================
-// Investigation Steps:
-// 1. [Verify user account legitimacy]
-// 2. [Check for other suspicious activity]
-// 3. [Review MFA status]
-//
-// Escalation Criteria:
-// - [User doesn't recognize activity]
-// - [Multiple high-risk indicators]
-//
-// Automation Playbook:
-// - [Logic App name or automation action]
-//
-//==============================================================================
-// REFERENCES
-//==============================================================================
-// - https://attack.mitre.org/techniques/T####/
-// - [Relevant Microsoft documentation]
-//==============================================================================
-```
 
 ---
 
