@@ -1,0 +1,24 @@
+```kql
+// ==============================================================================
+// MICROSOFT DEFENDER ANOMALY DETECTION TEMPLATE
+// Method: Time Series Decomposition
+// ==============================================================================
+// Rule Name: [Metric] Anomaly
+// Description: Detects deviations from historical baseline using series_decompose_anomalies.
+//
+// Baseline Period: 30 days
+// Analysis Period: 1 hour
+// ==============================================================================
+
+// --- DETECTION QUERY ---
+let timeframe = 30d;
+let timeframe_step = 1h;
+SigninLogs
+| where TimeGenerated >= ago(timeframe)
+| make-series Count=count() on TimeGenerated step timeframe_step by UserPrincipalName
+| extend (Anomalies, Score, Baseline) = series_decompose_anomalies(Count, 1.5, -1, 'linefit')
+| mv-expand TimeGenerated, Count, Anomalies, Score, Baseline
+| where Anomalies != 0
+| project TimeGenerated, UserPrincipalName, Count, Baseline, Score, Anomalies
+| order by Score desc
+```

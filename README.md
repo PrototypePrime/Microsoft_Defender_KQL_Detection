@@ -199,7 +199,14 @@ Focus on cloud and identity-centric threats:
 ### 2. Copy the Template
 
 ```bash
-cp TEMPLATE_KQL_Detection.kql Authentication/T1078_Impossible_Travel.kql
+# Standard Production Alert (MITRE Aligned)
+cp templates/TEMPLATE_Standard_Alert.kql Authentication/T1078_Impossible_Travel.kql
+
+# Threat Hunting Hypothesis
+cp templates/TEMPLATE_Threat_Hunting.kql Authentication/Hunt_T1078_Anomalies.kql
+
+# Time-Series Anomaly Detection
+cp templates/TEMPLATE_Anomaly_Detection.kql Authentication/T1078_Baseline_Deviation.kql
 ```
 
 ### 3. Write the KQL Query
@@ -267,19 +274,29 @@ SigninLogs
 <details>
 <summary><b>💡 KQL Best Practices</b></summary>
 
-**Performance Optimization:**
-```kql
-// ✅ GOOD - Filter early
-SigninLogs
-| where TimeGenerated >= ago(1h)  // Filter time first
-| where ResultType == "0"         // Then status
-| where UserPrincipalName !endswith "@contoso.com"  // Exclude early
+**Performance Optimization: `where` vs `search` & `has` vs `contains`**
 
-// ❌ AVOID - Filter late
+| Feature | Best Practice (Fast) | Anti-Pattern (Slow) |
+| :--- | :--- | :--- |
+| **Filtering** | `where` (Schema-aware) | `search` (Full text scan) |
+| **String Match** | `has` (Indexed token match) | `contains` (Substring scan) |
+| **Case Sensitivity** | `==` (Case-sensitive) | `=~` (Case-insensitive - slower) |
+| **Order of Ops** | Filter Time -> Filter Fields -> Project | Project -> Summarize -> Filter |
+
+**Recommendation:** Always filter by `TimeGenerated` first, then by specific indexed columns (e.g., `DeviceName`, `FileName`). Use `has` for whole words and `contains` only when necessary.
+
+```kql
+// ✅ GOOD - Filter early, use indexed operators
 SigninLogs
-| project-away ... // Heavy projection first
-| summarize ...    // Aggregation before filtering
-| where TimeGenerated >= ago(1h)  // Filter last (slow!)
+| where TimeGenerated >= ago(1h)
+| where AppDisplayName has "Office"
+| where ResultType == "0"
+
+// ❌ AVOID - Filter late, use expensive scans
+SigninLogs
+| search "Office"
+| where ResultType =~ "0"
+| where TimeGenerated >= ago(1h)
 ```
 
 **Use Materialized Views:**
@@ -620,7 +637,7 @@ SecurityIncident
 
 ### Requirements
 
-✅ **Template compliance**  
+✅ **Template compliance** - Use `TEMPLATE_Standard_Alert.kql` for production rules  
 ✅ **Testing in Defender/Sentinel**  
 ✅ **Test results** (TP/FP rate, query time)  
 ✅ **Environment documentation**  

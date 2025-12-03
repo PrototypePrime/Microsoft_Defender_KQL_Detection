@@ -1,0 +1,43 @@
+```kql
+// ==============================================================================
+// MICROSOFT DEFENDER STANDARD ALERT TEMPLATE
+// Framework: MITRE ATT&CK / Cyber Kill Chain
+// ==============================================================================
+// Rule Name: [Technique Name] - [Specific Behavior]
+// Author: [Your Name]
+// Date: [YYYY-MM-DD]
+// Version: 1.0
+//
+// MITRE ATT&CK:
+// - Tactic: [TA####] [Tactic Name]
+// - Technique: [T####] [Technique Name]
+// - Sub-technique: [T####.###] [Name]
+//
+// Severity: [Low | Medium | High | Critical]
+// Status: [Development | Staging | Production]
+//
+// Description:
+// [Detailed description of the detection logic and the threat it addresses.]
+//
+// Data Source:
+// - Table: [DeviceProcessEvents | SigninLogs | EmailEvents]
+//
+// ==============================================================================
+
+// --- THE QUERY ---
+DeviceProcessEvents
+| where TimeGenerated >= ago(1h)
+| where FileName =~ "powershell.exe"
+| where ProcessCommandLine has "-enc"
+| project TimeGenerated, DeviceName, UserPrincipalName, ProcessCommandLine, InitiatingProcessFileName
+
+// --- ENRICHMENT ---
+| extend 
+    MitreTechniqueId = "T1059.001",
+    MitreTactic = "Execution",
+    Severity = "Medium",
+    RuleName = "Suspicious PowerShell Execution"
+
+// --- OUTPUT ---
+| project TimeGenerated, RuleName, Severity, DeviceName, UserPrincipalName, ProcessCommandLine, MitreTechniqueId
+```
