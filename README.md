@@ -20,12 +20,12 @@
 
 ## 📋 Overview
 
-This repository is **two things in one**:
+This repository provides **production-ready KQL detection rules** and **cloud-native detection methodology**:
 
-1.  **📚 A Production Detection Library**: Battle-tested KQL queries for Microsoft's integrated security platform, covering endpoint, identity, email, and cloud threats.
-2.  **🛠️ A Detection Engineering Toolkit**: A structured framework and set of rules to help you build, test, and document your *own* custom Analytics Rules with the same high standards.
+1.  **📚 Production Detection Library**: Battle-tested KQL analytics for Microsoft's integrated security platform, covering endpoint, identity, email, and cloud threats across Defender XDR and Azure Sentinel.
+2.  **🛠️ Detection Engineering Reference**: Proven KQL patterns demonstrating professional analytics rule development, query optimization, and cloud-scale detection standards.
 
-**Our Philosophy:** *Don't reinvent the wheel. Use our logic where it fits, modify it where it doesn't, or use our templates to build something entirely new.*
+**Repository Value:** *Deploy our KQL analytics immediately, optimize for your M365/Azure environment, or reference our proven patterns when building custom cloud-native detections.*
 
 ### Key Features
 ✅ **Multi-platform** - Defender XDR, Defender for Endpoint, Azure Sentinel  
@@ -97,25 +97,26 @@ This repository is **two things in one**:
 
 ### How to Use This Library
 
-#### Option A: Deploy Existing Rules (Fastest) ⚡
-1.  **Browse** the categories above (e.g., `Authentication/T1078_Impossible_Travel.kql`).
-2.  **Copy** the KQL query.
-3.  **Run** it in specific environment:
-    *   **Defender XDR:** Go to **Hunting** → **Advanced Hunting**.
-    *   **Azure Sentinel:** Go to **Logs**.
-4.  **Create** an Analytics Rule or Custom Detection policy from the query.
+#### Option A: Deploy Production Analytics (Recommended) ⚡
+1.  **Browse** detection categories (e.g., `Authentication/T1078_Impossible_Travel.kql`).
+2.  **Copy** the production-ready KQL query.
+3.  **Validate** in your environment:
+    *   **Defender XDR:** **Hunting** → **Advanced Hunting**
+    *   **Azure Sentinel:** **Logs** workspace
+4.  **Deploy** as Analytics Rule or Custom Detection policy.
 
-#### Option B: Build Custom Rules (Flexible) 🛠️
-1.  **Navigate** to the `templates/` directory.
-2.  **Choose** a template:
-    *   `TEMPLATE_Standard_Alert.kql` for standard production alerts.
-    *   `TEMPLATE_Threat_Hunting.kql` for exploratory queries.
-3.  **Customize** the logic.
+#### Option B: Adapt for Your Environment (Flexible) 🛠️
+1.  **Start** with a production KQL rule from the library.
+2.  **Optimize** for your M365/Azure environment:
+    *   Adjust identity filters for your tenant
+    *   Add device naming conventions
+    *   Modify thresholds based on your baseline
+3.  **Reference** the `templates/` directory for KQL pattern examples.
 
-#### Option C: Modify Our Logic (Hybrid) 🔄
-1.  **Start** with an existing KQL query from this library.
-2.  **Adjust** thresholds (e.g., `... | where failed_count > 20`).
-3.  **Add** environmental filters (e.g., `... | where DeviceName !startswith "Dev-"`).
+#### Option C: Contribute Back (Community) 🤝
+1.  **Fork** this repository.
+2.  **Contribute** improved KQL logic or new detection rules.
+3.  **Submit** a Pull Request with query performance metrics and testing results.
 
 ---
 
@@ -163,7 +164,7 @@ SigninLogs
 ### 2. Testing & Validation
 Use **Event-Horizon** (our sister project) or Microsoft's own Attack Simulator.
 
-**Recommended Tool:** [Event-Horizon](https://github.com/PrototypePrime/Event-Horizon)
+**Recommended Tool:** [Event-Horizon](https://github.com/PrototypePrime/Event_Horizon)
 
 ---
 
@@ -202,7 +203,7 @@ Focused on cloud and identity threat detection for Microsoft security stack.
 [![Email](https://img.shields.io/badge/Email-mathan1702%40gmail.com-D14836?logo=gmail&style=flat-square)](mailto:mathan1702@gmail.com)
 
 ### Related Projects
-- [Event-Horizon](https://github.com/PrototypePrime/Event-Horizon) - Production-quality security log generator
+- [Event-Horizon](https://github.com/PrototypePrime/Event_Horizon) - Production-quality security log generator
 - [Splunk SPL Detection](https://github.com/PrototypePrime/Splunk_SPL_Detection)
 - [Cortex XDR XQL Detection](https://github.com/PrototypePrime/Cortex_XDR_XQL_Detection)
 
